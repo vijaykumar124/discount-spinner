@@ -1,0 +1,76 @@
+// Prisma schema for Discount Spinner app
+// @ts-check
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+  firstName   String?
+  lastName    String?
+  email       String?
+  accountOwner Boolean  @default(false)
+  locale      String?
+  collaborator Boolean? @default(false)
+  emailVerified Boolean? @default(false)
+}
+
+model SpinnerConfig {
+  id               String   @id @default(cuid())
+  shop             String   @unique
+  
+  // Popup settings
+  popupTitle       String   @default("Get 25% Off + Gift")
+  popupSubtitle    String   @default("Join 10,000+ happy customers")
+  triggerDelay     Int      @default(3)   // seconds after page load
+  triggerEnabled   Boolean  @default(true)
+  
+  // Discount wheel segments (JSON)
+  discountSegments String   @default("[{\"label\":\"10% OFF\",\"probability\":30,\"code\":\"SPIN10\"},{\"label\":\"15% OFF\",\"probability\":25,\"code\":\"SPIN15\"},{\"label\":\"20% OFF\",\"probability\":25,\"code\":\"SPIN20\"},{\"label\":\"25% OFF\",\"probability\":20,\"code\":\"SPIN25\"}]")
+  
+  // Product wheel segments (JSON) — now includes variantId
+  productSegments  String   @default("[{\"label\":\"Free Shipping\",\"probability\":40,\"productId\":\"\",\"variantId\":\"\",\"imageUrl\":\"\"},{\"label\":\"Free Gift\",\"probability\":30,\"productId\":\"\",\"variantId\":\"\",\"imageUrl\":\"\"},{\"label\":\"Bonus Item\",\"probability\":30,\"productId\":\"\",\"variantId\":\"\",\"imageUrl\":\"\"}]")
+  
+  // Timer settings
+  timerDuration    Int      @default(10)  // minutes
+  
+  // Klaviyo integration (kept for legacy but no longer required)
+  klaviyoApiKey    String   @default("")
+  klaviyoListId    String   @default("")
+  
+  // Step labels
+  step1Label       String   @default("SPIN TO WIN")
+  step3Label       String   @default("UNLOCK A BONUS")
+  step5Label       String   @default("CLAIM MY OFFER")
+  
+  // Theme customization
+  primaryColor     String   @default("#7c3aed")
+  accentColor      String   @default("#f59e0b")
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Lead {
+  id            String   @id @default(cuid())
+  shop          String
+  email         String
+  discountCode  String   @default("")
+  productLabel  String   @default("")
+  createdAt     DateTime @default(now())
+
+  @@index([shop])
+}

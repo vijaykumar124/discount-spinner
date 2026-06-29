@@ -1,0 +1,24 @@
+name = "discount-spinner"
+client_id = "YOUR_CLIENT_ID"
+application_url = "https://YOUR_APP_URL.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+dev_store_url = ""
+
+[access_scopes]
+scopes = "write_products,read_products,write_discounts,read_discounts"
+
+[auth]
+redirect_urls = ["https://YOUR_APP_URL.com/auth/callback"]
+
+[webhooks]
+api_version = "2024-01"
+
+[[webhooks.subscriptions]]
+  topics = ["app/uninstalled"]
+  uri = "/webhooks"
+
+[pos]
+embedded = false

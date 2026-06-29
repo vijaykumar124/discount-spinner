@@ -1,0 +1,53 @@
+{% comment %}
+  Discount Spinner Widget Block
+  Injects the popup widget script into the storefront.
+  Configure via the Shopify Theme Editor sidebar.
+{% endcomment %}
+
+{% assign app_url = "/apps/discount-spinner-proxy" %}
+
+<div id="discount-spinner-root" style="display:none;" aria-hidden="true"></div>
+
+<script>
+  // Widget config — passed from Liquid to JavaScript
+  // Note: APP_URL and shop are server-side values, not user input
+  window.__DS_CONFIG__ = {
+    appUrl: {{ app_url | json }},
+    shop: {{ shop.permanent_domain | json }},
+    primaryColor: {{ block.settings.primary_color | json }},
+    accentColor: {{ block.settings.accent_color | json }}
+  };
+</script>
+
+<script src="{{ 'spinner-widget.js' | asset_url }}" defer="defer"></script>
+
+{% schema %}
+{
+  "name": "Discount Spinner",
+  "target": "body",
+  "settings": [
+    {
+      "type": "header",
+      "content": "🎰 Discount Spinner Widget"
+    },
+    {
+      "type": "paragraph",
+      "content": "The spinner popup is configured in your Shopify App admin. These settings control appearance overrides only."
+    },
+    {
+      "type": "color",
+      "id": "primary_color",
+      "label": "Primary Color",
+      "default": "#7c3aed",
+      "info": "Main accent color for buttons and wheel glow"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent Color",
+      "default": "#f59e0b",
+      "info": "Secondary color for jackpot and highlights"
+    }
+  ]
+}
+{% endschema %}

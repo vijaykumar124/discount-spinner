@@ -1,0 +1,9 @@
+type = "ui_extension"
+name = "Discount Spinner Widget"
+handle = "discount-spinner-widget"
+uid = "e2604b85-a42f-54f5-8322-c50ff833f48d7a71355f"
+
+[[extensions]]
+type = "theme"
+name = "Discount Spinner"
+handle = "discount-spinner-widget"
