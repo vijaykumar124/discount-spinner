@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "remix vite:build",
+    "build": "prisma generate && remix vite:build",
     "dev": "shopify app dev",
     "dev:server": "remix vite:dev",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
