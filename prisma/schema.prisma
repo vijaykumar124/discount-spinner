@@ -45,7 +45,7 @@ model SpinnerConfig {
   productSegments  String   @default("[{\"label\":\"Free Shipping\",\"probability\":40,\"productId\":\"\",\"variantId\":\"\",\"imageUrl\":\"\"},{\"label\":\"Free Gift\",\"probability\":30,\"productId\":\"\",\"variantId\":\"\",\"imageUrl\":\"\"},{\"label\":\"Bonus Item\",\"probability\":30,\"productId\":\"\",\"variantId\":\"\",\"imageUrl\":\"\"}]")
   
   // Timer settings
-  timerDuration    Int      @default(10)  // minutes
+  timerDuration    Int      @default(1)  // minutes
   
   // Klaviyo integration (kept for legacy but no longer required)
   klaviyoApiKey    String   @default("")

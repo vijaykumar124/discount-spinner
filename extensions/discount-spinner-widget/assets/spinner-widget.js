@@ -48,6 +48,7 @@
 
   // ========== INJECT STYLES (PREMIUM REDESIGN) ==========
   function injectStyles() {
+    if (document.getElementById("ds-widget-styles")) return;
     const style = document.createElement("style");
     style.id = "ds-widget-styles";
     style.textContent = `
@@ -108,7 +109,7 @@
       .ds-topbar {
         display: flex;
         justify-content: space-between;
-        padding: 20px 26px 8px;
+        padding: 20px 55px 8px 26px;
         font-size: 11px;
         font-weight: 900;
         letter-spacing: 1.8px;
@@ -456,6 +457,66 @@
       }
       @keyframes dsOverlayOut {
         to { opacity: 0; }
+      }
+
+      /* Sticky Widget */
+      #ds-sticky-widget {
+        position: fixed;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--ds-bg);
+        border: 1.5px solid var(--ds-border);
+        border-right: none;
+        border-top-left-radius: 16px;
+        border-bottom-left-radius: 16px;
+        padding: 24px;
+        z-index: 2147483646;
+        text-align: center;
+        font-family: 'Outfit', sans-serif;
+        color: #ffffff;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 30px var(--ds-glow-primary);
+        display: none;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      .ds-sticky-title {
+        font-size: 11px;
+        font-weight: 900;
+        margin-bottom: 12px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .ds-sticky-timer {
+        font-size: 26px;
+        font-weight: 900;
+        color: var(--ds-primary);
+        font-family: monospace;
+        margin-bottom: 18px;
+        text-shadow: 0 0 15px var(--ds-glow-primary);
+      }
+      .ds-sticky-btn {
+        background: linear-gradient(135deg, var(--ds-primary), var(--ds-accent));
+        color: #ffffff;
+        border: none;
+        padding: 12px 24px;
+        font-size: 13px;
+        font-weight: 900;
+        border-radius: 50px;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        width: 100%;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 6px 16px var(--ds-glow-primary);
+      }
+      .ds-sticky-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px var(--ds-glow-primary), 0 0 15px var(--ds-glow-accent);
+      }
+      .ds-sticky-btn:active {
+        transform: translateY(1px);
       }
     `;
     document.head.appendChild(style);
@@ -899,6 +960,156 @@
     return [s1, s2, s3, s4, s5, s6];
   }
 
+  // ========== STICKY WIDGET ==========
+  function buildStickyWidget() {
+    const sticky = document.createElement('div');
+    sticky.id = 'ds-sticky-widget';
+    
+    const title = document.createElement('div');
+    title.className = 'ds-sticky-title';
+    title.textContent = 'OFFER APPLIED AT CHECKOUT';
+    
+    const timer = document.createElement('div');
+    timer.className = 'ds-sticky-timer';
+    timer.id = 'ds-sticky-timer';
+    timer.textContent = '00:00:00';
+    
+    const btn = document.createElement('button');
+    btn.className = 'ds-sticky-btn';
+    btn.textContent = 'SHOP NOW';
+    btn.onclick = () => {
+      // Directs them to collections or just closes if already there
+      if (!window.location.pathname.includes('/collections/')) {
+        window.location.href = '/collections/all';
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    sticky.appendChild(title);
+    sticky.appendChild(timer);
+    sticky.appendChild(btn);
+    
+    document.body.appendChild(sticky);
+    return sticky;
+  }
+
+  function checkStickyWidget() {
+    const expiration = localStorage.getItem("ds_expiration_time");
+    const hasPending = localStorage.getItem("pending_gift_variant") || localStorage.getItem("added_gift_variant");
+    
+    if (expiration && hasPending) {
+      const expTime = parseInt(expiration, 10);
+      if (Date.now() < expTime) {
+        injectStyles();
+        const sticky = buildStickyWidget();
+        sticky.style.display = 'block';
+        
+        function formatTime(s) {
+          const h = Math.floor(s / 3600);
+          const m = Math.floor((s % 3600) / 60);
+          const sec = s % 60;
+          if (h > 0) return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+          return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+        }
+        
+        const timerEl = document.getElementById("ds-sticky-timer");
+        const stickyInterval = setInterval(() => {
+          const now = Date.now();
+          const secondsLeft = Math.max(0, Math.floor((expTime - now) / 1000));
+          if (timerEl) timerEl.textContent = formatTime(secondsLeft);
+          
+          if (secondsLeft <= 0) {
+            clearInterval(stickyInterval);
+            sticky.style.display = 'none';
+            showExpiredPopupStandalone();
+          }
+        }, 1000);
+      } else {
+        showExpiredPopupStandalone();
+      }
+    }
+  }
+
+  async function showExpiredPopupStandalone() {
+    injectStyles();
+    
+    const addedVariant = localStorage.getItem("added_gift_variant") || localStorage.getItem("pending_gift_variant");
+    const addedDiscount = localStorage.getItem("added_discount_code") || localStorage.getItem("pending_discount_code");
+
+    localStorage.removeItem("pending_gift_variant");
+    localStorage.removeItem("pending_discount_code");
+    localStorage.removeItem("ds_expiration_time");
+    localStorage.removeItem("added_gift_variant");
+    localStorage.removeItem("added_discount_code");
+
+    let needsRefresh = false;
+
+    // Remove from Shopify Cart
+    if (addedVariant) {
+      try {
+        await window.fetch((window.Shopify?.routes?.root || "/") + "cart/change.js", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: String(addedVariant),
+            quantity: 0
+          })
+        });
+        needsRefresh = true;
+      } catch (e) {}
+    }
+
+    // Clear discount cookie
+    if (addedDiscount) {
+      try {
+        document.cookie = "discount_code=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        document.cookie = "discount_code=; path=/; domain=" + window.location.hostname + "; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      } catch (e) {}
+    }
+
+    // Refresh if on cart page so user sees items removed
+    // We do this when they close the popup.
+
+    const overlay = document.createElement("div");
+    overlay.id = "ds-overlay";
+
+    const modal = document.createElement("div");
+    modal.id = "ds-modal";
+
+    const expired = document.createElement("div");
+    expired.className = "ds-expired ds-screen active";
+    const icon = document.createElement("div");
+    icon.style.fontSize = "50px";
+    icon.textContent = "⏰";
+    const title = document.createElement("div");
+    title.className = "ds-title";
+    title.textContent = "Offer Expired";
+    const sub = document.createElement("div");
+    sub.className = "ds-subtitle";
+    sub.textContent = "Your reserved offer has expired. Spin again on your next visit!";
+    const btn = document.createElement("button");
+    btn.className = "ds-btn-primary";
+    btn.textContent = "CLOSE";
+    btn.addEventListener("click", () => {
+        overlay.style.animation = "dsOverlayOut 0.3s ease forwards";
+        setTimeout(() => {
+          overlay.remove();
+          if (needsRefresh && window.location.pathname.endsWith('/cart')) {
+            window.location.reload();
+          }
+        }, 300);
+    });
+
+    expired.appendChild(icon);
+    expired.appendChild(title);
+    expired.appendChild(sub);
+    expired.appendChild(btn);
+    modal.appendChild(expired);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  }
+
   // ========== NAVIGATION ==========
   function goToScreen(n) {
     document.querySelectorAll(".ds-screen").forEach((el) => {
@@ -1046,24 +1257,37 @@
   // ========== TIMER ==========
   function startTimer() {
     const config = spinnerConfig;
-    const minutes = parseInt(config.timerDuration || "10", 10);
-    let seconds = minutes * 60;
+    const minutes = parseInt(config.timerDuration || "1", 10);
+    
+    let expiration = localStorage.getItem("ds_expiration_time");
+    if (!expiration) {
+      expiration = Date.now() + minutes * 60000;
+      localStorage.setItem("ds_expiration_time", expiration.toString());
+    } else {
+      expiration = parseInt(expiration, 10);
+    }
 
     const badge = document.getElementById("ds-timer-badge");
 
     function formatTime(s) {
-      const m = Math.floor(s / 60);
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
       const sec = s % 60;
+      if (h > 0) return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
       return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     }
 
-    if (badge) setText(badge, formatTime(seconds));
+    function update() {
+      const now = Date.now();
+      const secondsLeft = Math.max(0, Math.floor((expiration - now) / 1000));
+      if (badge) setText(badge, formatTime(secondsLeft));
+      return secondsLeft;
+    }
 
+    update();
     timerInterval = setInterval(() => {
-      seconds--;
-      if (badge) setText(badge, formatTime(seconds));
-
-      if (seconds <= 0) {
+      const secondsLeft = update();
+      if (secondsLeft <= 0) {
         clearInterval(timerInterval);
         offerExpired = true;
         showExpired();
@@ -1202,7 +1426,7 @@
         isAddingGift = true;
 
         try {
-          // 1. Add the free product to the cart (using originalFetch to avoid interception recursion)
+          // Add the free product to the cart (using originalFetch to avoid interception recursion)
           const formData = {
             items: [{
               id: parseInt(giftVariant, 10),
@@ -1216,25 +1440,28 @@
             body: JSON.stringify(formData)
           });
 
-          // 2. Set discount cookie and apply discount in cart session
-          if (discountCode) {
-            document.cookie = "discount_code=" + encodeURIComponent(discountCode) + "; path=/; max-age=3600; SameSite=Lax";
-            document.cookie = "discount_code=" + encodeURIComponent(discountCode) + "; path=/; domain=" + window.location.hostname + "; max-age=3600; SameSite=Lax";
-
-            await originalFetch((window.Shopify?.routes?.root || "/") + "cart/update.js", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ discount: discountCode })
-            });
-          }
-
           // Clear pending items from localStorage so this only happens once
           localStorage.removeItem("pending_gift_variant");
           localStorage.removeItem("pending_discount_code");
+          
+          // Save added items so they can be removed if the timer expires
+          localStorage.setItem("added_gift_variant", giftVariant);
+          if (discountCode) {
+            localStorage.setItem("added_discount_code", discountCode);
+          }
+
+          let redirectUrl = "/cart";
+          if (discountCode) {
+            try {
+              document.cookie = "discount_code=" + encodeURIComponent(discountCode) + "; path=/; max-age=3600; SameSite=Lax";
+              document.cookie = "discount_code=" + encodeURIComponent(discountCode) + "; path=/; domain=" + window.location.hostname + "; max-age=3600; SameSite=Lax";
+            } catch (_) {}
+            redirectUrl = `/discount/${encodeURIComponent(discountCode)}?redirect=/cart`;
+          }
 
           // Force page reload on the cart page to show both products added with discount
           setTimeout(() => {
-            window.location.href = "/cart";
+            window.location.href = redirectUrl;
           }, 400);
 
         } catch (err) {
@@ -1273,11 +1500,35 @@
 
       // Intercept form submissions targeting the cart
       document.addEventListener("submit", function (e) {
-        const action = e.target?.action || "";
+        const action = e.target?.action || e.target?.getAttribute("action") || "";
         if (action.includes("/cart/add")) {
-          setTimeout(addFreeProductAndDiscount, 800);
+          e.preventDefault();
+          const formData = new FormData(e.target);
+          originalFetch((window.Shopify?.routes?.root || "/") + "cart/add.js", {
+            method: "POST",
+            body: formData
+          }).then(() => {
+            addFreeProductAndDiscount();
+          }).catch(() => {
+            e.target.submit();
+          });
         }
       });
+
+      // Check if we are currently on the cart page directly, and haven't added the gift yet
+      if (window.location.pathname.endsWith('/cart')) {
+        originalFetch((window.Shopify?.routes?.root || "/") + "cart.js")
+          .then(res => res.json())
+          .then(cart => {
+            if (cart.item_count > 0) {
+              const hasGift = cart.items.some(item => item.variant_id == giftVariant);
+              if (!hasGift) {
+                addFreeProductAndDiscount();
+              }
+            }
+          })
+          .catch(() => {});
+      }
     } catch (_) {}
   }
 
@@ -1289,6 +1540,7 @@
     // Check if seen before
     try {
       if (localStorage.getItem("ds-seen") === "1") {
+        checkStickyWidget();
         return;
       }
     } catch (_) {}
