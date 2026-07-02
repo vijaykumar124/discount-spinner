@@ -89,11 +89,21 @@ export const action = async ({ request }) => {
                     type: "profile",
                     attributes: {
                       email: email,
+                      // ✅ CRITICAL: Without this, Klaviyo won't mark the profile as
+                      // subscribed and your Flow (offer email) will never trigger.
+                      subscriptions: {
+                        email: {
+                          marketing: {
+                            consent: "SUBSCRIBED",
+                          },
+                        },
+                      },
                       properties: {
                         // Store contextual spin data as profile properties
                         discount_spinner_code: discountCode ? String(discountCode).slice(0, 30) : null,
                         discount_spinner_product: productLabel ? String(productLabel).slice(0, 50) : null,
                         discount_spinner_source: "popup_widget",
+                        last_spin_discount_code: discountCode ? String(discountCode).slice(0, 30) : null,
                       },
                     },
                   },
@@ -145,7 +155,7 @@ export const action = async ({ request }) => {
                   data: {
                     type: "metric",
                     attributes: {
-                      name: "Spun Discount Spinner",
+                      name: "Claimed Discount Spinner",
                     },
                   },
                 },

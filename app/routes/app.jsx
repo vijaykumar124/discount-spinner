@@ -25,6 +25,7 @@ export default function App() {
         <Link to="/app/spinner-settings">Spinner Settings</Link>
         <Link to="/app/discount-segments">Discount Wheel</Link>
         <Link to="/app/product-segments">Product Wheel</Link>
+        <Link to="/app/klaviyo">Klaviyo</Link>
         <Link to="/app/leads">Leads</Link>
       </NavMenu>
       <Outlet />

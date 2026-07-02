@@ -943,15 +943,15 @@
 
     const s6Icon = document.createElement("div");
     s6Icon.style.fontSize = "60px";
-    s6Icon.textContent = "🛒";
+    s6Icon.textContent = "🎉";
 
     const s6Title = document.createElement("div");
     s6Title.className = "ds-title";
-    s6Title.textContent = "Applying Reward...";
+    s6Title.textContent = "Rewards Applied! 🎁";
 
     const s6Sub = document.createElement("div");
     s6Sub.className = "ds-subtitle";
-    s6Sub.textContent = "Adding gift to cart & applying discount code. Redirecting you to checkout...";
+    s6Sub.textContent = "Your free gift is in the cart & discount code is active. Taking you to shop now...";
 
     s6.appendChild(s6Icon);
     s6.appendChild(s6Title);
@@ -1323,7 +1323,7 @@
     modal.appendChild(expired);
   }
 
-  // ========== EMAIL CLAIM & AUTO ADD TO CART ==========
+  // ========== EMAIL CLAIM & DIRECT CART ADD ==========
   async function handleEmailSubmit() {
     const emailInput = document.getElementById("ds-email-input");
     const errorEl = document.getElementById("ds-email-error");
@@ -1347,7 +1347,7 @@
     }
 
     try {
-      // 1. Submit lead to local database
+      // STEP 1: Save lead to database (Klaviyo subscription happens here too)
       const response = await fetch(`${APP_URL}/api/claim-offer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1364,28 +1364,63 @@
         throw new Error(data.error || "Failed to claim offer. Try again.");
       }
 
-      // Lead saved successfully in DB! Transition to success loading screen
+      // Lead saved! Show success loading screen
       goToScreen(6);
       try {
         localStorage.setItem("ds-seen", "1");
       } catch (_) {}
 
-      // Store pending rewards in localStorage so they get added on any product add to cart
+      // STEP 2: Directly add the FREE PRODUCT to cart right now
+      // We already know the variantId from the spin result — no need to wait
+      let cartAddOk = false;
       if (wonProduct && wonProduct.variantId) {
-        localStorage.setItem("pending_gift_variant", wonProduct.variantId);
-      }
-      if (wonDiscount && wonDiscount.code) {
-        localStorage.setItem("pending_discount_code", wonDiscount.code);
         try {
-          // Set the discount code cookie directly in browser for maximum reliability
-          document.cookie = "discount_code=" + encodeURIComponent(wonDiscount.code) + "; path=/; max-age=3600; SameSite=Lax";
-          document.cookie = "discount_code=" + encodeURIComponent(wonDiscount.code) + "; path=/; domain=" + window.location.hostname + "; max-age=3600; SameSite=Lax";
-        } catch (_) {}
+          const cartRes = await fetch(
+            (window.Shopify?.routes?.root || "/") + "cart/add.js",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                items: [{ id: parseInt(wonProduct.variantId, 10), quantity: 1 }],
+              }),
+            }
+          );
+          if (cartRes.ok) {
+            cartAddOk = true;
+            // Save for expiry cleanup
+            try {
+              localStorage.setItem("added_gift_variant", wonProduct.variantId);
+              if (wonDiscount?.code) {
+                localStorage.setItem("added_discount_code", wonDiscount.code);
+              }
+              const mins = parseInt(spinnerConfig?.timerDuration || "10", 10);
+              localStorage.setItem(
+                "ds_expiration_time",
+                String(Date.now() + mins * 60000)
+              );
+            } catch (_) {}
+          } else {
+            const errText = await cartRes.text().catch(() => "");
+            console.warn("[DS] Cart add failed:", cartRes.status, errText);
+          }
+        } catch (cartErr) {
+          console.warn("[DS] Cart add error:", cartErr.message);
+        }
       }
 
-      // Redirect to the All Products collection page after showing success screen
+      // STEP 3: Redirect — apply discount via Shopify's /discount/CODE URL,
+      // then send to /collections/all so the customer can browse with discount active.
+      // Free product is already in cart, discount is applied, now they can shop!
+      let redirectUrl = "/collections/all";
+      if (wonDiscount && wonDiscount.code) {
+        redirectUrl =
+          "/discount/" +
+          encodeURIComponent(wonDiscount.code) +
+          "?redirect=/collections/all";
+      }
+
       setTimeout(() => {
-        window.location.href = "/collections/all";
+        window.location.href = redirectUrl;
       }, 1500);
 
     } catch (err) {
