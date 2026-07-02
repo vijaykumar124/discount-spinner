@@ -2,12 +2,11 @@
 
 client_id = "fd114a7a6f35ab43107a9c428d0ccdc6"
 name = "discount-spinner-app"
-application_url = "https://example.com"
+application_url = "https://discount-spinner-pink.vercel.app"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
-include_config_on_deploy = true
 
 [webhooks]
 api_version = "2026-07"
@@ -17,9 +16,9 @@ api_version = "2026-07"
 scopes = "read_discounts,read_products,write_discounts,write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://discount-spinner-pink.vercel.app/auth/callback" ]
 
 [app_proxy]
-url = "https://example.com"
+url = "https://discount-spinner-pink.vercel.app"
 subpath = "discount-spinner-proxy"
 prefix = "apps"
