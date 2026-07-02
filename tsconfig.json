@@ -10,10 +10,12 @@
     "target": "ES2022",
     "strict": true,
     "allowJs": true,
+    "noEmit": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
       "~/*": ["./app/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "build", ".vercel"]
 }
