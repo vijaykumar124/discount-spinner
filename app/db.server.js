@@ -8,9 +8,10 @@ if (process.env.NODE_ENV === "production") {
   const dbUrl = process.env.DATABASE_URL || "";
   try {
     const urlObj = new URL(dbUrl);
-    console.log(`[DB INFO] Host: ${urlObj.hostname}, Database: ${urlObj.pathname}, Pooler: ${urlObj.hostname.includes("-pooler")}`);
+    const maskedUrl = dbUrl.replace(/:[^:@]+@/, ":****@");
+    console.error(`[DB INFO ERROR] Host: ${urlObj.hostname}, Database: ${urlObj.pathname}, Pooler: ${urlObj.hostname.includes("-pooler")}, Masked URL: ${maskedUrl}`);
   } catch (err) {
-    console.log(`[DB INFO] Unable to parse DATABASE_URL: ${dbUrl ? "present" : "missing"}`);
+    console.error(`[DB INFO ERROR] Unable to parse DATABASE_URL: ${dbUrl ? "present" : "missing"}`);
   }
 } else {
   if (!global.__db__) {
